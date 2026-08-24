@@ -242,7 +242,7 @@ jobs:
           cd bin
           app="$(ls -1d *.app 2>/dev/null | head -n 1)"
           if [ -z "$app" ]; then
-            app="$(find . -maxdepth 1 -type f -perm -111 -printf '%f\n' | head -n 1)"
+            app="$(find . -maxdepth 1 -type f -perm -111 -exec basename {} \; | head -n 1)"
           fi
           if [ -z "$app" ]; then
             echo "No build output found in bin"
