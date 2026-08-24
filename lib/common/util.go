@@ -482,9 +482,11 @@ func GetIntranetIp() (error, string) {
 	return errors.New("get intranet ip error"), ""
 }
 
-// isUsefulPrivateIPv4 reports whether ip is a usable LAN IPv4 for display:
-// RFC1918 private only — excludes loopback, link-local (169.254.0.0/16), public, etc.
-func isUsefulPrivateIPv4(ip net.IP) bool {
+// isUsefulLocalIPv4 reports whether ip is a usable unicast IPv4 for display:
+// excludes loopback, link-local (169.254.0.0/16), unspecified and multicast.
+// No RFC1918 requirement, so non-standard private ranges used in practice
+// (e.g. 192.169.0.0/16) are kept.
+func isUsefulLocalIPv4(ip net.IP) bool {
 	if ip == nil {
 		return false
 	}
@@ -492,11 +494,17 @@ func isUsefulPrivateIPv4(ip net.IP) bool {
 	if v4 == nil {
 		return false
 	}
-	if v4.IsLoopback() || v4.IsLinkLocalUnicast() || v4.IsLinkLocalMulticast() || v4.IsUnspecified() || v4.IsMulticast() {
+	return !v4.IsLoopback() && !v4.IsLinkLocalUnicast() && !v4.IsLinkLocalMulticast() && !v4.IsUnspecified() && !v4.IsMulticast()
+}
+
+// isUsefulPrivateIPv4 reports whether ip is a usable LAN IPv4 for display:
+// RFC1918 private only — excludes loopback, link-local (169.254.0.0/16), public, etc.
+func isUsefulPrivateIPv4(ip net.IP) bool {
+	if !isUsefulLocalIPv4(ip) {
 		return false
 	}
 	// RFC1918 only (not 169.254, not public)
-	return v4.IsPrivate()
+	return ip.To4().IsPrivate()
 }
 
 func ipFromAddr(addr net.Addr) net.IP {
@@ -513,15 +521,22 @@ func ipFromAddr(addr net.Addr) net.IP {
 	}
 }
 
-// GetLocalIPs returns private (RFC1918) IPv4 addresses useful for identifying the npc host.
-// Prefers the local IP of conn (path toward nps). Falls back to interface scan.
-// Link-local 169.254.0.0/16, loopback and public addresses are excluded.
+// GetLocalIPs returns IPv4 addresses useful for identifying the npc host.
+// Prefers the local IP of conn (path toward nps). Falls back to the outbound
+// interface and finally an interface scan.
+// The connection path and outbound interface IPs are trusted as-is (only
+// loopback/link-local/etc. excluded), so non-standard private ranges such as
+// 192.169.0.0/16 are kept; the interface scan keeps RFC1918-only filtering.
 func GetLocalIPs(conn net.Conn) string {
 	seen := make(map[string]struct{})
 	ips := make([]string, 0, 4)
 
-	add := func(ip net.IP) {
-		if !isUsefulPrivateIPv4(ip) {
+	add := func(ip net.IP, privateOnly bool) {
+		if privateOnly {
+			if !isUsefulPrivateIPv4(ip) {
+				return
+			}
+		} else if !isUsefulLocalIPv4(ip) {
 			return
 		}
 		s := ip.To4().String()
@@ -534,7 +549,7 @@ func GetLocalIPs(conn net.Conn) string {
 
 	// 1) Local endpoint of the bridge connection — usually the real LAN IP used to reach nps.
 	if conn != nil {
-		add(ipFromAddr(conn.LocalAddr()))
+		add(ipFromAddr(conn.LocalAddr()), false)
 		// One correct path IP is enough for most hosts (avoids docker/vm junk alongside).
 		if len(ips) > 0 {
 			return ips[0]
@@ -543,7 +558,7 @@ func GetLocalIPs(conn net.Conn) string {
 
 	// 2) Outbound interface toward the internet (same idea as GetLocalUdpAddr).
 	if tmp, err := net.Dial("udp", "114.114.114.114:53"); err == nil {
-		add(ipFromAddr(tmp.LocalAddr()))
+		add(ipFromAddr(tmp.LocalAddr()), false)
 		_ = tmp.Close()
 		if len(ips) > 0 {
 			return ips[0]
@@ -563,7 +578,7 @@ func GetLocalIPs(conn net.Conn) string {
 			}
 			for _, address := range addrs {
 				if ipnet, ok := address.(*net.IPNet); ok {
-					add(ipnet.IP)
+					add(ipnet.IP, true)
 				}
 			}
 		}

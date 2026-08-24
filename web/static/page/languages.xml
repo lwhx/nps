@@ -122,7 +122,7 @@
 	</lang>
 
 	<lang id="word-address">
-		<zh-CN>客户端出口地址</zh-CN>
+		<zh-CN>出口地址</zh-CN>
 		<en-US>Client egress address</en-US>
 	</lang>
 	<lang id="word-localaddr">

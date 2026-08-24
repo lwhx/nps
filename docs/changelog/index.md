@@ -1,4 +1,8 @@
 ﻿# 更新日志
+- 2026-08-24  v0.26.38
+  - 修复：
+    - 客户端内网地址为 192.169.x.x 等非标准私网段时，Web 面板客户端列表不显示本机 IP [#348](https://github.com/yisier/nps/issues/348)
+
 - 2026-08-08  v0.26.37
   - 修复：
     - NPC 安装到系统服务失败 BUG [#338](https://github.com/yisier/nps/issues/338)  
