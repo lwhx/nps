@@ -34,8 +34,16 @@ type TRPClient struct {
 	cnf            *config.Config
 	disconnectTime int
 	once           sync.Once
-	closeCh        chan struct{}   // closed when client is shutting down; stops ping
-	logger         *logs.BeeLogger // 每个客户端独立的 logger
+	closeCh        chan struct{} // closed when client is shutting down; stops ping
+	logger         Logger        // 每客户端独立的 logger，未设置时使用全局 logger
+}
+
+// Logger 客户端日志接口，GUI / CLI 均可注入实现
+type Logger interface {
+	Info(format string, v ...interface{})
+	Error(format string, v ...interface{})
+	Warn(format string, v ...interface{})
+	Trace(format string, v ...interface{})
 }
 
 // new client
@@ -55,7 +63,7 @@ func NewRPClient(svraddr string, vKey string, bridgeConnType string, proxyUrl st
 }
 
 // SetLogger 设置客户端的独立 logger
-func (s *TRPClient) SetLogger(logger *logs.BeeLogger) {
+func (s *TRPClient) SetLogger(logger Logger) {
 	s.logger = logger
 }
 

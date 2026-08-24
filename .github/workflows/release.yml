@@ -9,7 +9,7 @@ permissions:
 env:
   GUI_DIR: cmd/npc/npc-gui
   FRONTEND_DIR: cmd/npc/npc-gui/frontend
-  WAILS_VERSION: v2.11.0
+  WAILS_VERSION: v3.0.0-beta.12
   APP_NAME: npc-gui
 
 jobs:
@@ -171,36 +171,26 @@ jobs:
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/yarn.lock
       - name: Enable Yarn (corepack)
         run: corepack enable
-      - name: Install frontend dependencies
-        run: yarn install --frozen-lockfile
-        working-directory: ${{ env.FRONTEND_DIR }}
-      - name: Build frontend
-        run: yarn build
-        working-directory: ${{ env.FRONTEND_DIR }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GUI_DIR }}/go.mod
           check-latest: true
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
         working-directory: ${{ env.GUI_DIR }}
       - name: Build and package (Windows)
         shell: pwsh
         working-directory: ${{ env.GUI_DIR }}
         run: |
-          $wails = Join-Path (go env GOPATH) "bin\wails.exe"
-          $tagArgs = @()
-          if ($env:WAILS_TAGS) { $tagArgs += @("-tags", $env:WAILS_TAGS) }
-          & $wails build -m -s -trimpath -skipbindings @tagArgs -platform ${{ matrix.platform }} -o "$env:APP_NAME.exe"
-          Set-Location build\bin
+          $env:GOOS = "windows"
+          $env:GOARCH = "${{ matrix.arch }}"
+          wails3 build --tags npcgui
+          Set-Location bin
           $zipName = "$env:APP_NAME-${{ matrix.os_name }}-${{ matrix.arch }}.zip"
           $exe = Get-ChildItem -Path . -Filter *.exe | Select-Object -First 1
           if (-not $exe) {
-            $exe = Get-ChildItem -Path . -File | Select-Object -First 1
-          }
-          if (-not $exe) {
-            Write-Host "No build output found in build/bin"
+            Write-Host "No build output found in bin"
             Get-ChildItem -Path . | Format-Table -AutoSize
             exit 1
           }
@@ -209,7 +199,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-builds-${{ matrix.arch }}
-          path: ${{ env.GUI_DIR }}/build/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
+          path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
 
   # ==================== macOS GUI ====================
   build_macos_gui:
@@ -234,34 +224,28 @@ jobs:
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/yarn.lock
       - name: Enable Yarn (corepack)
         run: corepack enable
-      - name: Install frontend dependencies
-        run: yarn install --frozen-lockfile
-        working-directory: ${{ env.FRONTEND_DIR }}
-      - name: Build frontend
-        run: yarn build
-        working-directory: ${{ env.FRONTEND_DIR }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GUI_DIR }}/go.mod
           check-latest: true
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
         working-directory: ${{ env.GUI_DIR }}
       - name: Build and package (macOS)
         shell: bash
         working-directory: ${{ env.GUI_DIR }}
         run: |
-          wails="$(go env GOPATH)/bin/wails"
-          tagArgs=()
-          if [ -n "$WAILS_TAGS" ]; then
-            tagArgs+=( -tags "$WAILS_TAGS" )
-          fi
-          "$wails" build -m -s -trimpath -skipbindings "${tagArgs[@]}" -platform "${{ matrix.platform }}" -o "$APP_NAME"
-          cd build/bin
+          export GOOS=darwin
+          export GOARCH="${{ matrix.arch }}"
+          wails3 build --tags npcgui
+          cd bin
           app="$(ls -1d *.app 2>/dev/null | head -n 1)"
           if [ -z "$app" ]; then
-            echo "No .app found in build/bin"
+            app="$(find . -maxdepth 1 -type f -perm -111 -printf '%f\n' | head -n 1)"
+          fi
+          if [ -z "$app" ]; then
+            echo "No build output found in bin"
             ls -la
             exit 1
           fi
@@ -270,13 +254,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-builds-${{ matrix.arch }}
-          path: ${{ env.GUI_DIR }}/build/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
+          path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
 
   # ==================== Linux GUI ====================
   build_linux_gui:
     runs-on: ubuntu-latest
-    env:
-      WAILS_TAGS: webkit2_41
     strategy:
       matrix:
         include:
@@ -289,7 +271,7 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -298,34 +280,25 @@ jobs:
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/yarn.lock
       - name: Enable Yarn (corepack)
         run: corepack enable
-      - name: Install frontend dependencies
-        run: yarn install --frozen-lockfile
-        working-directory: ${{ env.FRONTEND_DIR }}
-      - name: Build frontend
-        run: yarn build
-        working-directory: ${{ env.FRONTEND_DIR }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: ${{ env.GUI_DIR }}/go.mod
           check-latest: true
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
         working-directory: ${{ env.GUI_DIR }}
       - name: Build and package (Linux)
         shell: bash
         working-directory: ${{ env.GUI_DIR }}
         run: |
-          wails="$(go env GOPATH)/bin/wails"
-          tagArgs=()
-          if [ -n "$WAILS_TAGS" ]; then
-            tagArgs+=( -tags "$WAILS_TAGS" )
-          fi
-          "$wails" build -m -s -trimpath -skipbindings "${tagArgs[@]}" -platform "${{ matrix.platform }}" -o "$APP_NAME"
-          cd build/bin
+          export GOOS=linux
+          export GOARCH="${{ matrix.arch }}"
+          wails3 build --tags npcgui
+          cd bin
           bin="$(find . -maxdepth 1 -type f -perm -111 -printf '%f\n' | head -n 1)"
           if [ -z "$bin" ]; then
-            echo "No executable file found in build/bin"
+            echo "No executable file found in bin"
             ls -la
             exit 1
           fi
@@ -334,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-builds-${{ matrix.arch }}
-          path: ${{ env.GUI_DIR }}/build/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
+          path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
 
   # ==================== GUI Release 上传 ====================
   upload_gui_release:
