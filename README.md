@@ -46,6 +46,12 @@
 
 ![image](https://raw.githubusercontent.com/yisier/nps/master/docs/.vuepress/public/image/new/cmd.png)
 
+
+#### GUI
+
+![image](https://yisier.github.io/nps/image/new/gui.png)
+
+
 #### 命令行直接启动
 
 ```shell
@@ -53,6 +59,7 @@ npc -server=ip:8024 -vkey=xxx                           # 标准
 npc -server=ip:8025 -vkey=xxx -tls_enable=true           # TLS 桥接
 npc -server=ip:8024 -vkey=vkey1,vkey2                    # 多隧道
 ```
+
 
 ---
 
