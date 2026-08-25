@@ -2,7 +2,8 @@
 - 2026-08-24  v0.26.38
   - 新增：
     - GUI 客户端（npc-gui）迁移到 Wails v3
-    - GUI 客户端新增版本自动更新：启动时自动检查 GitHub 最新 release，支持一键下载并热替换当前可执行文件后自动重启
+    - GUI 客户端新增版本自动更新：启动时自动检查 GitHub 最新 release，支持一键下载并热替换当前可执行文件后自动重启  
+    ![img.png](/image/new/gui.png)
   - 修复：
     - 客户端内网地址为 192.169.x.x 等非标准私网段时，Web 面板客户端列表不显示本机 IP [#348](https://github.com/yisier/nps/issues/348)
 
