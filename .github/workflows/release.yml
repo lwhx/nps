@@ -243,11 +243,16 @@ jobs:
         run: |
           export GOOS=darwin
           export GOARCH="${{ matrix.arch }}"
-          wails3 build --tags npcgui
+          # wails3 package builds with EXTRA_TAGS=npcgui (Package has no --tags
+          # flag; the var flows into the build dep) and then assembles a proper
+          # bin/npc-gui.app bundle with ad-hoc codesign.
+          wails3 package EXTRA_TAGS=npcgui
           cd bin
-          app="$(ls -1d *.app 2>/dev/null | head -n 1)"
+          # Guard the .app lookups so a no-match does not abort the script
+          # under `set -e -o pipefail`; keep the raw-binary fallback as safety.
+          app="$(ls -1d *.app 2>/dev/null | head -n 1 || true)"
           if [ -z "$app" ]; then
-            app="$(find . -maxdepth 1 -type f -perm -111 -exec basename {} \; | head -n 1)"
+            app="$(find . -maxdepth 1 -type f -perm -111 -exec basename {} \; | head -n 1 || true)"
           fi
           if [ -z "$app" ]; then
             echo "No build output found in bin"
