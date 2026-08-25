@@ -206,16 +206,18 @@ jobs:
 
   # ==================== macOS GUI ====================
   build_macos_gui:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - platform: darwin/amd64
             os_name: darwin
             arch: amd64
+            os: macos-13
           - platform: darwin/arm64
             os_name: darwin
             arch: arm64
+            os: macos-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v4
