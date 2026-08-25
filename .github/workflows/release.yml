@@ -40,7 +40,7 @@ jobs:
           ./build.assets.sh
       - name: Upload
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
           files: |
             freebsd_386_client.tar.gz
@@ -95,7 +95,7 @@ jobs:
           ls -la android_client.apk
       - name: Upload
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
           files: |
             android_client.apk
@@ -205,7 +205,7 @@ jobs:
           path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
       - name: Upload Windows release asset
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
           files: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
           tag_name: ${{ github.ref_name }}
@@ -275,7 +275,7 @@ jobs:
           path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
       - name: Upload macOS release asset
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
           files: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
           tag_name: ${{ github.ref_name }}
@@ -336,7 +336,7 @@ jobs:
           path: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
       - name: Upload Linux release asset
         uses: softprops/action-gh-release@v2
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
           files: ${{ env.GUI_DIR }}/bin/${{ env.APP_NAME }}-${{ matrix.os_name }}-${{ matrix.arch }}.zip
           tag_name: ${{ github.ref_name }}
